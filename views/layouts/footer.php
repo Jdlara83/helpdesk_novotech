@@ -1,0 +1,18 @@
+<footer class="main-footer text-sm">
+    <div class="float-right d-none d-sm-inline">
+        Mesa de Servicios v1.0
+    </div>
+    <strong>Copyright &copy; 2026 NOVOTECH.</strong> Todos los derechos reservados.
+</footer>
+</div>
+
+<!-- JQUERY DEBE IR DE PRIMERO EN EL FOOTER -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
+</body>
+
+</html>
