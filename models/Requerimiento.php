@@ -135,4 +135,42 @@ class Requerimiento
             return [];
         }
     }
+    // Obtener requerimientos filtrados por estado de soporte ('PENDIENTE' o 'REALIZADO')
+    public function listarPorEstadoSoporte(int $idResponsable, string $estadoSoporte): array
+    {
+        if (!$this->conn) {
+            $this->conn = Database::getConnection();
+        }
+
+        $sql = "SELECT 
+                    r.id_requerimiento AS id,
+                    COALESCE(cat.tipo_soporte, 'REQUERIMIENTO') AS categoria,
+                    COALESCE(proy.proyecto, 'GENERAL') AS proyecto,
+                    r.asunto_requerimiento AS asunto,
+                    COALESCE(u_sol.nombre, u_sol.usuario, 'Sin Solicitar') AS solicitante,
+                    COALESCE(u_resp.nombre, u_resp.usuario, 'Sin Asignar') AS responsable,
+                    COALESCE(r.fecha_crea, r.fecha_ini_requerimiento, NOW()) AS fecha_creacion,
+                    r.fecha_fin_requerimiento AS fecha_gestion,
+                    COALESCE(r.estado_requerimiento_soporte, r.estado_requerimiento, 'PENDIENTE') AS estado
+                FROM requerimientos r
+                LEFT JOIN par_tipo_soporte cat ON r.id_categoria_requerimiento = cat.id_tipo_soporte
+                LEFT JOIN par_proyecto_soporte proy ON r.id_proyecto_requerimiento = proy.id_par_proyecto
+                LEFT JOIN usuarios u_sol ON r.id_usuario_requerimiento = u_sol.id
+                LEFT JOIN usuarios u_resp ON r.id_usuario_responsable = u_resp.id
+                WHERE r.id_usuario_responsable = :id_resp 
+                  AND COALESCE(r.estado_requerimiento_soporte, r.estado_requerimiento) = :estado_soporte
+                ORDER BY r.id_requerimiento DESC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([
+                ':id_resp'        => $idResponsable,
+                ':estado_soporte' => $estadoSoporte
+            ]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error al listar requerimientos por estado de soporte: " . $e->getMessage());
+            return [];
+        }
+    }
 }

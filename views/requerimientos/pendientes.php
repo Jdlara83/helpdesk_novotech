@@ -3,13 +3,8 @@
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1 class="m-0">Bolsa de Requerimientos</h1>
+                    <h1 class="m-0">Requerimientos Pendientes</h1>
                 </div>
-                <!-- <div class="col-sm-6 text-right">
-                    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#modalNuevoTicket">
-                        <i class="fas fa-plus"></i> Nuevo Ticket
-                    </button>
-                </div> -->
             </div>
         </div>
     </div>
@@ -23,12 +18,12 @@
                         <thead>
                             <tr>
                                 <th># ID</th>
-                                <th>Categoria Requerimiento</th>
+                                <th>Categoría Requerimiento</th>
                                 <th>Proyecto Requerimiento</th>
                                 <th>Asunto Requerimiento</th>
                                 <th>Usuario Solicitante</th>
-                                <th>Fecha Creación Requerimiento</th>
-                                <th>Estado Requerimiento</th>
+                                <th>Fecha Creación</th>
+                                <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -40,4 +35,4 @@
     </section>
 </div>
 
-<script src="js/requerimientos-pendientes.js"></script>
+<script src="js/requerimientos_pendientes.js"></script>

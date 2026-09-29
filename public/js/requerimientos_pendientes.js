@@ -40,5 +40,5 @@
         });
     }
 
-    initBolsaRequerimientos();
+    initTablaRequerimientosPendientes();
 })();

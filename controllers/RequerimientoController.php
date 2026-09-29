@@ -131,4 +131,125 @@ class RequerimientoController
         echo json_encode(['data' => $data], JSON_UNESCAPED_UNICODE);
         exit;
     }
+
+    // 1. Cargar Vista HTML de Requerimientos Pendientes
+    public function pendientes()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['usuario_id'])) {
+            header('Location: index.php?controller=auth&action=login');
+            exit;
+        }
+
+        require_once __DIR__ . '/../views/layouts/header.php';
+        require_once __DIR__ . '/../views/layouts/navbar.php';
+        require_once __DIR__ . '/../views/layouts/sidebar.php';
+        require_once __DIR__ . '/../views/requerimientos/pendientes.php';
+        require_once __DIR__ . '/../views/layouts/footer.php';
+    }
+
+    // 2. Endpoint JSON para Requerimientos Pendientes
+    public function listarPendientes()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        if (!isset($_SESSION['usuario_id'])) {
+            echo json_encode(['data' => []], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $reqModel = new Requerimiento();
+        $idUsuarioSesion = $_SESSION['usuario_id'];
+        $reqsBD = $reqModel->listarPorEstadoSoporte($idUsuarioSesion, 'PENDIENTE');
+
+        $data = [];
+        foreach ($reqsBD as $r) {
+            $estadoTexto = strtoupper($r['estado'] ?? 'PENDIENTE');
+            $badgeEstado = '<span class="badge badge-warning p-2">' . htmlspecialchars($estadoTexto) . '</span>';
+
+            $acciones = '
+                <div class="btn-group-vertical btn-group-sm">
+                    <button class="btn btn-warning btn-sm my-1" title="Ver Detalle">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-success btn-sm my-1" title="Resolver Requerimiento">
+                        <i class="fas fa-check"></i>
+                    </button>
+                </div>';
+
+            $data[] = [
+                'id'                  => $r['id'],
+                'categoria'           => htmlspecialchars($r['categoria'] ?? 'REQUERIMIENTO'),
+                'proyecto'            => htmlspecialchars($r['proyecto'] ?? 'GENERAL'),
+                'asunto'              => htmlspecialchars($r['asunto'] ?? ''),
+                'usuario_solicitante' => htmlspecialchars($r['solicitante'] ?? ''),
+                'fecha'               => $r['fecha_creacion'] ?? '',
+                'estado'              => $badgeEstado,
+                'acciones'            => $acciones
+            ];
+        }
+
+        echo json_encode(['data' => $data], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // 3. Cargar Vista HTML de Requerimientos Realizados
+    public function realizados()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (!isset($_SESSION['usuario_id'])) {
+            header('Location: index.php?controller=auth&action=login');
+            exit;
+        }
+
+        require_once __DIR__ . '/../views/layouts/header.php';
+        require_once __DIR__ . '/../views/layouts/navbar.php';
+        require_once __DIR__ . '/../views/layouts/sidebar.php';
+        require_once __DIR__ . '/../views/requerimientos/realizados.php';
+        require_once __DIR__ . '/../views/layouts/footer.php';
+    }
+
+    // 4. Endpoint JSON para Requerimientos Realizados
+    public function listarRealizados()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        if (!isset($_SESSION['usuario_id'])) {
+            echo json_encode(['data' => []], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $reqModel = new Requerimiento();
+        $idUsuarioSesion = $_SESSION['usuario_id'];
+        $reqsBD = $reqModel->listarPorEstadoSoporte($idUsuarioSesion, 'REALIZADO');
+
+        $data = [];
+        foreach ($reqsBD as $r) {
+            $estadoTexto = strtoupper($r['estado'] ?? 'REALIZADO');
+            $badgeEstado = '<span class="badge badge-success p-2">' . htmlspecialchars($estadoTexto) . '</span>';
+
+            $acciones = '
+                <button class="btn btn-warning btn-sm" title="Ver Detalle">
+                    <i class="fas fa-eye"></i>
+                </button>';
+
+            $data[] = [
+                'id'                  => $r['id'],
+                'categoria'           => htmlspecialchars($r['categoria'] ?? 'REQUERIMIENTO'),
+                'proyecto'            => htmlspecialchars($r['proyecto'] ?? 'GENERAL'),
+                'asunto'              => htmlspecialchars($r['asunto'] ?? ''),
+                'usuario_solicitante' => htmlspecialchars($r['solicitante'] ?? ''),
+                'fecha'               => $r['fecha_creacion'] ?? '',
+                'estado'              => $badgeEstado,
+                'acciones'            => $acciones
+            ];
+        }
+
+        echo json_encode(['data' => $data], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 }
