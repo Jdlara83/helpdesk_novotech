@@ -233,13 +233,13 @@ class TicketController
             $acciones = '
                 <div class="btn-group-vertical btn-group-sm">
                     <button class="btn btn-primary btn-sm my-1" onclick="tomarTicket(' . $t['id'] . ')" title="Asignar">
-                        <i class="fas fa-user"></i>
+                        <i class="fas fa-check"></i>
                     </button>
                     <button class="btn btn-warning btn-sm my-1" title="Ver Detalle">
                         <i class="fas fa-eye"></i>
                     </button>
                     <button class="btn btn-success btn-sm my-1" title="Resolver">
-                        <i class="fas fa-check"></i>
+                        <i class="fas fa-user"></i>
                     </button>
                 </div>';
 
