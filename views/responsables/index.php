@@ -86,4 +86,4 @@
 </div>
 
 <!-- Carga del JavaScript específico del módulo -->
-<script src="/public/js/responsables.js"></script>
+<script src="js/responsables.js"></script>

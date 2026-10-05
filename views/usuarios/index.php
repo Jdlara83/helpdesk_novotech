@@ -118,4 +118,4 @@
     </div>
 </div>
 
-<script src="/public/js/usuarios.js"></script>
+<script src="js/usuarios.js"></script>
