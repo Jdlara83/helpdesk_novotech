@@ -211,6 +211,8 @@ class TicketController
 
         $data = [];
         foreach ($ticketsBD as $t) {
+            $idTicket = $t['id']; // id_ticket mapeado en la SQL
+
             // Badges de Estado
             $estadoTexto = strtoupper($t['estado'] ?? 'CREADO');
             $badgeEstado = match ($estadoTexto) {
@@ -229,23 +231,25 @@ class TicketController
                 default => '<span class="badge badge-info">' . htmlspecialchars($prio) . '</span>',
             };
 
-            // Botones exactos del proyecto viejo (Asignar, Ver, Resolver)
+            // BOTONES DE ACCIÓN MAPEADOS CORRECTAMENTE A JS
             $acciones = '
                 <div class="btn-group-vertical btn-group-sm">
-                    <button class="btn btn-primary btn-sm my-1" onclick="tomarTicket(' . $t['id'] . ')" title="Asignar">
+                    <!-- 1. Azul (Check): Asignar a un tercero vía Modal -->
+                    <button class="btn btn-primary btn-sm my-1" onclick="abrirModalAsignar(' . $idTicket . ')" title="Asignar a Usuario">
                         <i class="fas fa-check"></i>
                     </button>
-                    <button class="btn btn-warning btn-sm my-1" title="Ver Detalle">
+                    <!-- 2. Amarillo (Ojo): Ver Detalle -->
+                    <button class="btn btn-warning btn-sm my-1" onclick="verDetalleTicket(' . $idTicket . ')" title="Ver Detalle">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn btn-success btn-sm my-1" title="Resolver">
+                    <!-- 3. Verde (Usuario): Tomar Caso para MÍ -->
+                    <button class="btn btn-success btn-sm my-1" onclick="tomarTicket(' . $idTicket . ')" title="Tomar Caso">
                         <i class="fas fa-user"></i>
                     </button>
                 </div>';
 
-            // Arreglo sincronizado con DataTables JS
             $data[] = [
-                'id'                  => $t['id'],
+                'id'                  => $idTicket,
                 'categoria'           => htmlspecialchars($t['categoria'] ?? 'SIN CATEGORÍA'),
                 'proyecto'            => htmlspecialchars($t['proyecto'] ?? 'GENERAL'),
                 'asunto'              => htmlspecialchars($t['asunto'] ?? ''),
@@ -261,7 +265,20 @@ class TicketController
         exit;
     }
 
-    // Endpoint AJAX para tomar un ticket de la bolsa
+    // Endpoint 1: Obtener lista de soporte para el Select del Modal
+    public function obtenerSoportes()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $ticketModel = new Ticket();
+        $soportes = $ticketModel->obtenerUsuariosSoporte();
+
+        echo json_encode(['status' => 'success', 'data' => $soportes], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+    // 1. Botón Verde: Tomar caso para mí mismo (Auto-asignación)
     public function tomarTicket()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -269,20 +286,44 @@ class TicketController
         header('Content-Type: application/json; charset=utf-8');
 
         if (!isset($_SESSION['usuario_id'])) {
-            echo json_encode(['status' => 'session_expired', 'message' => 'Sesión expirada.']);
+            echo json_encode(['status' => 'session_expired', 'message' => 'Sesión expirada. Por favor inicie sesión nuevamente.']);
             exit;
         }
 
         $idTicket = intval($_POST['id_ticket'] ?? 0);
-        if ($idTicket > 0) {
+        $idMiUsuario = intval($_SESSION['usuario_id']);
+
+        if ($idTicket > 0 && $idMiUsuario > 0) {
             $ticketModel = new Ticket();
-            if ($ticketModel->asignarResponsable($idTicket, $_SESSION['usuario_id'], 'EN PROCESO')) {
-                echo json_encode(['status' => 'success', 'message' => 'Ticket asignado correctamente.']);
+            if ($ticketModel->asignarResponsable($idTicket, $idMiUsuario, 'EN PROCESO')) {
+                echo json_encode(['status' => 'success', 'message' => 'Te has asignado el ticket correctamente.']);
                 exit;
             }
         }
 
-        echo json_encode(['status' => 'error', 'message' => 'No se pudo asignar el ticket.']);
+        echo json_encode(['status' => 'error', 'message' => 'No se pudo asignar el ticket. Verifique la base de datos.']);
+        exit;
+    }
+
+    // 2. Botón Azul (Modal): Reasignar a un usuario seleccionado de la lista
+    public function asignarTercero()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $idTicket = intval($_POST['id_ticket'] ?? 0);
+        $idResponsable = intval($_POST['id_usuario_soporte'] ?? 0);
+
+        if ($idTicket > 0 && $idResponsable > 0) {
+            $ticketModel = new Ticket();
+            if ($ticketModel->asignarResponsable($idTicket, $idResponsable, 'EN PROCESO')) {
+                echo json_encode(['status' => 'success', 'message' => 'Ticket reasignado exitosamente.']);
+                exit;
+            }
+        }
+
+        echo json_encode(['status' => 'error', 'message' => 'Debe seleccionar un usuario de soporte válido.']);
         exit;
     }
     // 1. Cargar la Vista HTML de Tickets Pendientes
@@ -433,5 +474,27 @@ class TicketController
         require_once __DIR__ . '/../views/layouts/sidebar.php';
         require_once __DIR__ . '/../views/tickets/realizados.php';
         require_once __DIR__ . '/../views/layouts/footer.php';
+    }
+    // Endpoint para consultar el detalle (Solo Lectura) desde el Modal
+    public function obtenerDetalle()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $idTicket = intval($_GET['id_ticket'] ?? $_GET['id'] ?? 0);
+
+        if ($idTicket > 0) {
+            $ticketModel = new Ticket();
+            $detalle = $ticketModel->obtenerDetalleCompleto($idTicket);
+
+            if ($detalle) {
+                echo json_encode(['status' => 'success', 'data' => $detalle], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+
+        echo json_encode(['status' => 'error', 'message' => 'No se encontró la información del ticket.']);
+        exit;
     }
 }

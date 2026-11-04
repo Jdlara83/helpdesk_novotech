@@ -182,17 +182,18 @@ class Ticket
         }
     }
 
-    // Asignar responsable y cambiar estado
+    // Asignar responsable (id_usuario_responsable) y actualizar estados
     public function asignarResponsable(int $idTicket, int $idResponsable, string $nuevoEstado = 'EN PROCESO'): bool
     {
         if (!$this->conn) {
             $this->conn = Database::getConnection();
         }
 
-        $sql = "UPDATE {$this->table} 
+        $sql = "UPDATE tickets 
                 SET id_usuario_responsable = :id_resp, 
                     estado = :estado, 
-                    estado_soporte = :estado 
+                    estado_soporte = 'PENDIENTE',
+                    fecha_gestion_soporte = NOW()
                 WHERE id_ticket = :id_ticket";
 
         try {
@@ -244,6 +245,64 @@ class Ticket
         } catch (PDOException $e) {
             error_log("Error al listar tickets por estado de soporte: " . $e->getMessage());
             return [];
+        }
+    }
+    // Obtener SOLO agentes de soporte, requerimientos y admin para el modal
+    public function obtenerUsuariosSoporte(): array
+    {
+        if (!$this->conn) {
+            $this->conn = Database::getConnection();
+        }
+
+        // Filtramos por perfil: 1 (Admin), 3 (Soporte), 4 (Requerimiento)
+        $sql = "SELECT id, COALESCE(NULLIF(TRIM(nombre), ''), usuario) AS nombre, usuario 
+                FROM usuarios 
+                WHERE estado = 1 
+                  AND (perfil IN ('1', '3', '4') OR CAST(perfil AS UNSIGNED) IN (1, 3, 4))
+                ORDER BY nombre ASC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log("Error al obtener usuarios de soporte: " . $e->getMessage());
+            return [];
+        }
+    }
+    // Obtener detalle completo de un ticket para la vista de consulta
+    public function obtenerDetalleCompleto(int $idTicket)
+    {
+        if (!$this->conn) {
+            $this->conn = Database::getConnection();
+        }
+
+        $sql = "SELECT 
+                    t.id_ticket,
+                    t.asunto_ticket,
+                    t.detalle_ticket,
+                    t.detalle_ubicacion,
+                    t.prioridad,
+                    t.estado,
+                    t.ruta_imagenes,
+                    t.ruta_archivos,
+                    t.fecha_crea,
+                    COALESCE(cat.tipo_soporte, 'SIN CATEGORÍA') AS categoria,
+                    COALESCE(proy.proyecto, 'GENERAL') AS proyecto,
+                    COALESCE(u_sol.nombre, u_sol.usuario, 'N/A') AS solicitante
+                FROM tickets t
+                LEFT JOIN par_tipo_soporte cat ON t.id_categoria_soporte = cat.id_tipo_soporte
+                LEFT JOIN par_proyecto_soporte proy ON t.id_proyecto_soporte = proy.id_par_proyecto
+                LEFT JOIN usuarios u_sol ON t.id_usuario_ticket = u_sol.id
+                WHERE t.id_ticket = :id_ticket";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([':id_ticket' => $idTicket]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Error al obtener detalle completo: " . $e->getMessage());
+            return false;
         }
     }
 }
