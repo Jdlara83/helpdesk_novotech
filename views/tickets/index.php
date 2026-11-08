@@ -63,14 +63,14 @@
                                             class="form-control" required>
                                             <option value="">-- Seleccione una opción --</option>
                                             <?php if (isset($categoriasPermitidas) && !empty($categoriasPermitidas)): ?>
-                                            <?php foreach ($categoriasPermitidas as $cat): ?>
-                                            <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['nombre']) ?>
-                                            </option>
-                                            <?php endforeach; ?>
+                                                <?php foreach ($categoriasPermitidas as $cat): ?>
+                                                    <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['nombre']) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
                                             <?php else: ?>
-                                            <option value="1">SOFTWARE</option>
-                                            <option value="2">INFRAESTRUCTURA</option>
-                                            <option value="3">REQUERIMIENTO</option>
+                                                <option value="1">SOFTWARE</option>
+                                                <option value="2">INFRAESTRUCTURA</option>
+                                                <option value="3">REQUERIMIENTO</option>
                                             <?php endif; ?>
                                         </select>
                                     </div>
