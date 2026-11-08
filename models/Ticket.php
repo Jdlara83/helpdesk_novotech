@@ -103,13 +103,17 @@ class Ticket
         }
 
         $sql = "SELECT 
-                    t.id_ticket AS id,
+                    t.id_ticket,
+                    COALESCE(cat.tipo_soporte, 'SIN CATEGORÍA') AS categoria,
+                    COALESCE(proy.proyecto, 'GENERAL') AS proyecto,
                     t.asunto_ticket AS asunto,
-                    COALESCE(u.nombre, u.usuario, 'Sin Nombre') AS solicitante,
-                    COALESCE(t.estado, t.estado_soporte, 'CREADO') AS estado,
-                    COALESCE(t.fecha_crea, t.fecha_ini_ticket, NOW()) AS fecha_creacion
+                    t.prioridad,
+                    COALESCE(t.fecha_crea, t.fecha_ini_ticket, NOW()) AS fecha_creacion,
+                    COALESCE(t.estado_soporte, 'PENDIENTE') AS estado_soporte,
+                    COALESCE(t.estado, 'CREADO') AS estado
                 FROM {$this->table} t
-                LEFT JOIN usuarios u ON t.id_usuario_ticket = u.id
+                LEFT JOIN par_tipo_soporte cat ON t.id_categoria_soporte = cat.id_tipo_soporte
+                LEFT JOIN par_proyecto_soporte proy ON t.id_proyecto_soporte = proy.id_par_proyecto
                 WHERE t.id_usuario_ticket = :id_usuario
                 ORDER BY t.id_ticket DESC";
 
@@ -302,6 +306,58 @@ class Ticket
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Error al obtener detalle completo: " . $e->getMessage());
+            return false;
+        }
+    }
+    // Obtener historial de seguimientos de un ticket
+    public function obtenerSeguimientos(int $idTicket): array
+    {
+        if (!$this->conn) {
+            $this->conn = Database::getConnection();
+        }
+
+        $sql = "SELECT 
+                    s.id_seguimiento,
+                    s.id_ticket,
+                    s.mensaje,
+                    s.archivo_mensaje,
+                    COALESCE(u.nombre, s.usuario_crea, 'Usuario') AS usuario,
+                    s.fecha_crea AS fecha
+                FROM ticket_seguimientos s
+                LEFT JOIN usuarios u ON s.usuario_crea = u.usuario OR s.usuario_crea = u.id
+                WHERE s.id_ticket = :id_ticket
+                ORDER BY s.id_seguimiento ASC";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute([':id_ticket' => $idTicket]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log("Error al obtener seguimientos: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Registrar nuevo seguimiento
+    public function guardarSeguimiento(int $idTicket, string $mensaje, ?string $archivo, string $usuarioCrea): bool
+    {
+        if (!$this->conn) {
+            $this->conn = Database::getConnection();
+        }
+
+        $sql = "INSERT INTO ticket_seguimientos (id_ticket, mensaje, archivo_mensaje, usuario_crea, fecha_crea)
+                VALUES (:id_ticket, :mensaje, :archivo, :usuario_crea, NOW())";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            return $stmt->execute([
+                ':id_ticket'    => $idTicket,
+                ':mensaje'      => $mensaje,
+                ':archivo'      => $archivo,
+                ':usuario_crea' => $usuarioCrea
+            ]);
+        } catch (PDOException $e) {
+            error_log("Error al guardar seguimiento: " . $e->getMessage());
             return false;
         }
     }

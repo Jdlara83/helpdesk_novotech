@@ -146,7 +146,6 @@ class TicketController
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
 
-        // Capturar ID de la sesión activa (o fallback a 1 si estamos probando)
         $usuarioId = $_SESSION['usuario_id'] ?? 1;
 
         $ticketModel = new Ticket();
@@ -154,29 +153,62 @@ class TicketController
 
         $data = [];
         foreach ($ticketsBD as $t) {
-            $estadoTexto = strtoupper($t['estado'] ?? 'CREADO');
-            $badgeEstado = match ($estadoTexto) {
-                'CREADO', 'PENDIENTE'    => '<span class="badge badge-warning p-2">CREADO</span>',
-                'EN PROCESO'            => '<span class="badge badge-info p-2">EN PROCESO</span>',
-                'REALIZADO', 'RESUELTO' => '<span class="badge badge-success p-2">REALIZADO</span>',
-                default                 => '<span class="badge badge-secondary p-2">' . htmlspecialchars($estadoTexto) . '</span>',
+            $idTicket   = $t['id_ticket'];
+            $estSoporte = strtoupper($t['estado_soporte'] ?? 'PENDIENTE');
+            $estTicket  = strtoupper($t['estado'] ?? 'CREADO');
+
+            // 1. Badge Estado Soporte Ticket
+            $badgeEstadoSoporte = match ($estSoporte) {
+                'PENDIENTE' => '<span class="badge badge-warning p-2">PENDIENTE</span>',
+                'REALIZADO' => '<span class="badge badge-success p-2">REALIZADO</span>',
+                default     => '<span class="badge badge-secondary p-2">' . htmlspecialchars($estSoporte) . '</span>',
             };
 
+            // 2. Badge Estado Ticket
+            $badgeEstadoTicket = match ($estTicket) {
+                'CREADO'               => '<span class="badge badge-warning p-2">CREADO</span>',
+                'PENDIENTE', 'EN PROCESO' => '<span class="badge badge-warning p-2">PENDIENTE</span>',
+                'REALIZADO', 'RESUELTO' => '<span class="badge badge-success p-2">REALIZADO</span>',
+                default                => '<span class="badge badge-secondary p-2">' . htmlspecialchars($estTicket) . '</span>',
+            };
+
+            // Prioridad
+            $prio = strtoupper($t['prioridad'] ?? 'MEDIA');
+            $badgePrioridad = match ($prio) {
+                'ALTA'  => '<span class="badge badge-danger">ALTA</span>',
+                'MEDIA' => '<span class="badge badge-warning">MEDIA</span>',
+                'BAJA'  => '<span class="badge badge-secondary">BAJA</span>',
+                default => '<span class="badge badge-info">' . htmlspecialchars($prio) . '</span>',
+            };
+
+            // REGLA DEL GLOBO: Habilitado SOLO si está en PENDIENTE / PENDIENTE
+            $puedeSeguimiento = ($estSoporte === 'PENDIENTE' && ($estTicket === 'PENDIENTE' || $estTicket === 'EN PROCESO'));
+
+            if ($puedeSeguimiento) {
+                $btnGlobo = '<button class="btn btn-primary btn-sm" onclick="abrirSeguimiento(' . $idTicket . ')" title="Seguimiento / Chat"><i class="fas fa-comment"></i></button>';
+            } else {
+                $btnGlobo = '<button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;" title="Seguimiento no disponible en este estado"><i class="fas fa-comment"></i></button>';
+            }
+
+            // Ojo Verde (Ver Detalle) + Globo Azul (Seguimiento)
             $acciones = '
-                <button class="btn btn-warning btn-sm" title="Ver Detalle">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-success btn-sm" title="Seguimiento / Chat">
-                    <i class="fas fa-check"></i>
-                </button>';
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-success btn-sm mr-1" onclick="verDetalleTicket(' . $idTicket . ')" title="Ver Detalle">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ' . $btnGlobo . '
+                </div>';
 
             $data[] = [
-                'id'          => $t['id'],
-                'titulo'      => htmlspecialchars($t['asunto'] ?? ''),
-                'solicitante' => htmlspecialchars($t['solicitante'] ?? ''),
-                'estado'      => $badgeEstado,
-                'fecha'       => $t['fecha_creacion'] ?? '',
-                'acciones'    => $acciones
+                'id'                  => $idTicket,
+                'categoria'           => htmlspecialchars($t['categoria'] ?? 'SIN CATEGORÍA'),
+                'proyecto'            => htmlspecialchars($t['proyecto'] ?? 'GENERAL'),
+                'asunto'              => htmlspecialchars($t['asunto'] ?? ''),
+                'prioridad'           => $badgePrioridad,
+                'fecha'               => $t['fecha_creacion'] ?? '',
+                'estado_soporte'      => $badgeEstadoSoporte,
+                'estado_ticket'       => $badgeEstadoTicket,
+                'acciones'            => $acciones
             ];
         }
 
@@ -495,6 +527,68 @@ class TicketController
         }
 
         echo json_encode(['status' => 'error', 'message' => 'No se encontró la información del ticket.']);
+        exit;
+    }
+    // Endpoint GET: Obtener lista de seguimientos
+    public function obtenerSeguimientos()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $idTicket = intval($_GET['id_ticket'] ?? 0);
+
+        if ($idTicket > 0) {
+            $ticketModel = new Ticket();
+            $listado = $ticketModel->obtenerSeguimientos($idTicket);
+            echo json_encode(['status' => 'success', 'data' => $listado], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        echo json_encode(['status' => 'error', 'message' => 'ID de ticket no válido.']);
+        exit;
+    }
+
+    // Endpoint POST: Guardar nuevo seguimiento sin recargar ni redirigir al login
+    public function guardarSeguimiento()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $idTicket = intval($_POST['id_ticket'] ?? 0);
+        $mensaje  = trim($_POST['observacion'] ?? '');
+        $usuario  = $_SESSION['usuario'] ?? $_SESSION['usuario_nombre'] ?? 'Sistema';
+
+        if ($idTicket > 0 && !empty($mensaje)) {
+            $rutaArchivo = null;
+
+            // Procesar archivo adjunto si se seleccionó uno
+            if (isset($_FILES['archivos_seguimiento']) && $_FILES['archivos_seguimiento']['error'][0] === UPLOAD_ERR_OK) {
+                $nombreTmp = $_FILES['archivos_seguimiento']['tmp_name'][0];
+                $nombreOrig = basename($_FILES['archivos_seguimiento']['name'][0]);
+                $dirDestino = 'uploads/seguimientos/';
+
+                if (!is_dir($dirDestino)) {
+                    mkdir($dirDestino, 0777, true);
+                }
+
+                $rutaDestino = $dirDestino . time() . '_' . $nombreOrig;
+                if (move_uploaded_file($nombreTmp, $rutaDestino)) {
+                    $rutaArchivo = $rutaDestino;
+                }
+            }
+
+            $ticketModel = new Ticket();
+            $exito = $ticketModel->guardarSeguimiento($idTicket, $mensaje, $rutaArchivo, $usuario);
+
+            if ($exito) {
+                echo json_encode(['status' => 'success', 'message' => 'Seguimiento registrado con éxito.'], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+
+        echo json_encode(['status' => 'error', 'message' => 'No se pudo guardar el seguimiento.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
