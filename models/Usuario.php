@@ -32,8 +32,7 @@ class Usuario
                 $passwordValida = password_verify($password, $user['password']) || ($password === $user['password']);
 
                 if ($passwordValida) {
-                    // Capturar el perfil desde la columna real de tu tabla 'usuarios'
-                    // Revisa cuál de estas columnas existe en tu BD:
+                    // Capturar el perfil
                     $perfilReal = $user['id_perfil'] ?? $user['id_perfiles'] ?? $user['id_rol'] ?? $user['perfil'] ?? 2;
 
                     // Asegurar que se guarde como número entero (int)
@@ -58,8 +57,6 @@ class Usuario
         if (!$this->conn) {
             $this->conn = Database::getConnection();
         }
-
-        // Traer todas las columnas de usuarios
         $sql = "SELECT * FROM {$this->table} ORDER BY id DESC";
 
         try {
@@ -71,7 +68,7 @@ class Usuario
                 return [];
             }
 
-            // Mapeo numérico por si en algún registro viene un id
+            // Mapeo numérico de perfiles a nombres para consistencia
             $perfilesNombres = [
                 1 => 'ADMINISTRADOR',
                 2 => 'USUARIO',
@@ -80,10 +77,8 @@ class Usuario
             ];
 
             foreach ($usuarios as &$u) {
-                // Capturamos lo que tenga la columna 'perfil' o 'id_perfil'
-                $valPerfil = $u['perfil'] ?? $u['id_perfil'] ?? $u['id_perfiles'] ?? 'USUARIO';
 
-                // Si viene como número (1,2,3,4), buscamos su texto; si ya es texto, lo usamos directamente
+                $valPerfil = $u['perfil'] ?? $u['id_perfil'] ?? $u['id_perfiles'] ?? 'USUARIO';
                 if (is_numeric($valPerfil)) {
                     $u['nombre_perfil'] = $perfilesNombres[intval($valPerfil)] ?? 'USUARIO';
                 } else {
@@ -98,14 +93,11 @@ class Usuario
         }
     }
     // Crear un nuevo usuario en la BD
-    // Crear un nuevo usuario en la BD con todos los campos
     public function crear(array $datos): bool
     {
         if (!$this->conn) {
             $this->conn = Database::getConnection();
         }
-
-        // Asignación de variables únicas para cada campo enviado
         $nombre    = trim($datos['nombre'] ?? '');
         $documento = trim($datos['documento'] ?? '');
         $mail      = trim($datos['mail'] ?? '');
@@ -115,11 +107,9 @@ class Usuario
         $estado    = intval($datos['estado'] ?? 1);
         $password  = trim($datos['password'] ?? '');
 
-        // Regla de Negocio: Si no escribe contraseña, se asigna '123456' por defecto
         $claveFinal = !empty($password) ? $password : 'Admin123';
         $hash       = password_hash($claveFinal, PASSWORD_BCRYPT);
 
-        // Si el campo usuario viene vacío, usamos la parte inicial del correo como respaldo
         if (empty($usuario) && !empty($mail)) {
             $usuario = explode('@', $mail)[0];
         }
@@ -178,6 +168,80 @@ class Usuario
             ]);
         } catch (PDOException $e) {
             error_log("Error PDO al cambiar estado: " . $e->getMessage());
+            return false;
+        }
+    }
+    // Obtener la lista de perfiles
+    public function obtenerRolesBD(): array
+    {
+        if (!$this->conn) {
+            $this->conn = Database::getConnection();
+        }
+        $sql = "SELECT id_perfil AS id, nombre_perfil AS nombre FROM par_perfiles ORDER BY nombre_perfil ASC;";
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log("Error PDO al obtener roles: " . $e->getMessage());
+            return [];
+        }
+    }
+    // Actualizar datos de un usuario existente
+    public function actualizar(int $id, string $nombre, string $documento, string $correo, string $telefono, int $idPerfil, int $estado, string $password = ''): bool
+    {
+        if (!$this->conn) {
+            $this->conn = Database::getConnection();
+        }
+
+        // Si se envió una nueva contraseña, la actualizamos; de lo contrario, conservamos la actual
+        if (!empty($password)) {
+            $hash = password_hash($password, PASSWORD_BCRYPT);
+            $sql = "UPDATE {$this->table} 
+                    SET nombre = :nombre, 
+                        documento = :documento, 
+                        mail = :correo, 
+                        telefono = :telefono, 
+                        perfil = :id_perfil, 
+                        estado = :estado, 
+                        password = :password 
+                    WHERE id = :id";
+            $params = [
+                ':nombre'    => $nombre,
+                ':documento' => $documento,
+                ':correo'    => $correo,
+                ':telefono'  => $telefono,
+                ':id_perfil' => $idPerfil,
+                ':estado'    => $estado,
+                ':password'  => $hash,
+                ':id'        => $id
+            ];
+        } else {
+            $sql = "UPDATE {$this->table} 
+                    SET nombre = :nombre, 
+                        documento = :documento, 
+                        mail = :correo, 
+                        telefono = :telefono, 
+                        perfil = :id_perfil, 
+                        estado = :estado 
+                    WHERE id = :id";
+            $params = [
+                ':nombre'    => $nombre,
+                ':documento' => $documento,
+                ':correo'    => $correo,
+                ':telefono'  => $telefono,
+                ':id_perfil' => $idPerfil,
+                ':estado'    => $estado,
+                ':id'        => $id
+            ];
+        }
+
+        try {
+            $stmt = $this->conn->prepare($sql);
+            return $stmt->execute($params);
+        } catch (PDOException $e) {
+            error_log("Error PDO al actualizar usuario: " . $e->getMessage());
             return false;
         }
     }

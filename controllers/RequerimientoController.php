@@ -90,7 +90,6 @@ class RequerimientoController
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
 
-        // Si no hay sesión, retornamos array data vacío para que DataTables no rompa
         if (!isset($_SESSION['usuario_id'])) {
             echo json_encode(['data' => []], JSON_UNESCAPED_UNICODE);
             exit;
@@ -127,12 +126,11 @@ class RequerimientoController
             ];
         }
 
-        // SIEMPRE envolver el resultado dentro de la clave 'data'
         echo json_encode(['data' => $data], JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // 1. Cargar Vista HTML de Requerimientos Pendientes
+    // Vista HTML de Requerimientos Pendientes
     public function pendientes()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -148,7 +146,7 @@ class RequerimientoController
         require_once __DIR__ . '/../views/layouts/footer.php';
     }
 
-    // 2. Endpoint JSON para Requerimientos Pendientes
+    // JSON para Requerimientos Pendientes
     public function listarPendientes()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -195,7 +193,7 @@ class RequerimientoController
         exit;
     }
 
-    // 3. Cargar Vista HTML de Requerimientos Realizados
+    // HTML de Requerimientos Realizados
     public function realizados()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -211,7 +209,7 @@ class RequerimientoController
         require_once __DIR__ . '/../views/layouts/footer.php';
     }
 
-    // 4. Endpoint JSON para Requerimientos Realizados
+    //JSON para Requerimientos Realizados
     public function listarRealizados()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();

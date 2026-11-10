@@ -35,7 +35,7 @@ class AuthController
             $_SESSION['usuario']    = $usuario['nombre'] ?? $usuario['mail'];
             $_SESSION['id_perfil'] = intval($usuario['id_perfil']);
 
-            // ENVIAR LA URL EXACTA DE REDIRECCIÓN AL DASHBOARD
+            // ENVIAR LA URL DE REDIRECCIÓN AL DASHBOARD
             echo json_encode([
                 'status'   => 'success',
                 'message'  => '¡Bienvenido al sistema!',

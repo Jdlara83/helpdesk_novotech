@@ -5,7 +5,6 @@ require_once __DIR__ . '/../models/Usuario.php';
 class ResponsableController
 {
     // Cargar la vista principal con el Layout (Header, Navbar, Sidebar, Footer)
-    // En ResponsableController.php -> función index()
     public function index()
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -20,7 +19,7 @@ class ResponsableController
         require_once __DIR__ . '/../views/layouts/navbar.php';
         require_once __DIR__ . '/../views/layouts/sidebar.php';
         require_once __DIR__ . '/../views/responsables/index.php';
-        require_once __DIR__ . '/../views/layouts/footer.php'; // Aquí se carga jQuery ($)
+        require_once __DIR__ . '/../views/layouts/footer.php';
     }
 
     // Endpoint AJAX para listar los registros en DataTables

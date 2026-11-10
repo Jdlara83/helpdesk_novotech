@@ -297,7 +297,6 @@ class TicketController
         exit;
     }
 
-    // Endpoint 1: Obtener lista de soporte para el Select del Modal
     public function obtenerSoportes()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -310,7 +309,7 @@ class TicketController
         echo json_encode(['status' => 'success', 'data' => $soportes], JSON_UNESCAPED_UNICODE);
         exit;
     }
-    // 1. Botón Verde: Tomar caso para mí mismo (Auto-asignación)
+    // Botón Verde: Tomar caso para mí mismo (Auto-asignación)
     public function tomarTicket()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -337,7 +336,7 @@ class TicketController
         exit;
     }
 
-    // 2. Botón Azul (Modal): Reasignar a un usuario seleccionado de la lista
+    // Botón Azul (Modal): Reasignar a un usuario seleccionado de la lista
     public function asignarTercero()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -358,7 +357,7 @@ class TicketController
         echo json_encode(['status' => 'error', 'message' => 'Debe seleccionar un usuario de soporte válido.']);
         exit;
     }
-    // 1. Cargar la Vista HTML de Tickets Pendientes
+    // Cargar la Vista HTML de Tickets Pendientes
     public function pendientes()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -374,7 +373,7 @@ class TicketController
         require_once __DIR__ . '/../views/layouts/footer.php';
     }
 
-    // 2. Endpoint JSON para la tabla de Tickets Pendientes
+    // Endpoint JSON para la tabla de Tickets Pendientes
     public function listarPendientes()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -389,7 +388,7 @@ class TicketController
         $ticketModel = new Ticket();
         $idUsuarioSesion = $_SESSION['usuario_id'];
 
-        // En el proyecto anterior (Imagen 5), los pendientes tienen estado_soporte = 'PENDIENTE'
+        // los pendientes tienen estado_soporte = 'PENDIENTE'
         $ticketsBD = $ticketModel->listarPorEstadoSoporte($idUsuarioSesion, 'PENDIENTE');
 
         $data = [];
@@ -433,7 +432,7 @@ class TicketController
         echo json_encode(['data' => $data], JSON_UNESCAPED_UNICODE);
         exit;
     }
-    // 3. Endpoint JSON para la tabla de Tickets Realizados
+    // Endpoint JSON para la tabla de Tickets Realizados
     public function listarRealizados()
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -446,7 +445,7 @@ class TicketController
         }
 
         $ticketModel = new Ticket();
-        // Llamamos la SQL pasándole el ID de sesión y los estados realizados
+        //  SQL pasándole el ID de sesión y los estados realizados
         $idUsuarioSesion = $_SESSION['usuario_id'];
         $ticketsBD = $ticketModel->listarPorEstadoSoporte($idUsuarioSesion, 'PENDIENTE');
         $ticketsBD = $ticketModel->listarPorEstadoSoporte($idUsuarioSesion, 'REALIZADO');

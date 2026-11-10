@@ -34,6 +34,7 @@
         </div>
     </section>
 </div>
+
 <!-- Modal para Crear / Editar Usuario -->
 <div class="modal fade" id="modalUsuario" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
@@ -44,7 +45,7 @@
                     <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <!-- Campo oculto para detectar si es Crear (vacío) o Editar (con ID) -->
+                    <!-- Campo oculto para el ID de Usuario -->
                     <input type="hidden" name="id" id="usuario_id">
 
                     <!-- Fila 1: Nombre y Documento -->
@@ -69,7 +70,7 @@
                                 placeholder="correo@ejemplo.com" required>
                         </div>
                         <div class="col-md-6 form-group">
-                            <label>Telefono</label>
+                            <label>Teléfono</label>
                             <input type="text" name="telefono" id="telefono" class="form-control"
                                 placeholder="Ej: 3001234567" required>
                         </div>
@@ -80,10 +81,8 @@
                         <div class="col-md-6 form-group">
                             <label>Perfil / Rol</label>
                             <select name="perfil" id="perfil" class="form-control" required>
-                                <option value="1">ADMINISTRADOR</option>
-                                <option value="2">USUARIO</option>
-                                <option value="3">SOPORTE</option>
-                                <option value="4">REQUERIMIENTO</option>
+                                <option value="">-- Cargando Roles... --</option>
+                                <!-- Se poblará dinámicamente con AJAX desde MySQL -->
                             </select>
                         </div>
                         <div class="col-md-6 form-group">
@@ -95,7 +94,7 @@
                         </div>
                     </div>
 
-                    <!-- Fila 4: Contraseña a ancho completo o en su propia sección -->
+                    <!-- Fila 4: Contraseña -->
                     <div class="row">
                         <div class="col-md-12 form-group">
                             <label>Contraseña</label>

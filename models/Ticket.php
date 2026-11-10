@@ -126,7 +126,7 @@ class Ticket
             return [];
         }
     }
-    // Método 2: Para la Bolsa General de Soporte (Todos los tickets)
+
     public function listar()
     {
         if (!$this->conn) {
@@ -152,7 +152,7 @@ class Ticket
             return [];
         }
     }
-    // Obtener todos los tickets para la Bolsa de Trabajo (Vista Administrador/Soporte)
+
     public function listarBolsa(): array
     {
         if (!$this->conn) {
@@ -212,7 +212,7 @@ class Ticket
             return false;
         }
     }
-    // Obtener tickets filtrados por el estado de soporte exacto ('PENDIENTE' o 'REALIZADO')
+    // Obtener tickets filtrados por el estado de soporte
     public function listarPorEstadoSoporte(int $idResponsable, string $estadoSoporte): array
     {
         if (!$this->conn) {
@@ -258,7 +258,6 @@ class Ticket
             $this->conn = Database::getConnection();
         }
 
-        // Filtramos por perfil: 1 (Admin), 3 (Soporte), 4 (Requerimiento)
         $sql = "SELECT id, COALESCE(NULLIF(TRIM(nombre), ''), usuario) AS nombre, usuario 
                 FROM usuarios 
                 WHERE estado = 1 

@@ -47,25 +47,71 @@ class UsuarioController
     // Endpoint AJAX para guardar el nuevo usuario
     public function guardar()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
+        if (session_status() === PHP_SESSION_NONE) session_start();
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json; charset=utf-8');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Mapeo exacto según los atributos 'name' del HTML
+            $id        = intval($_POST['id'] ?? 0);
+            $nombre    = trim($_POST['nombre'] ?? '');
+            $documento = trim($_POST['documento'] ?? '');
+            $correo    = trim($_POST['mail'] ?? $_POST['correo'] ?? '');
+            $telefono  = trim($_POST['telefono'] ?? '');
+            $idPerfil  = intval($_POST['perfil'] ?? $_POST['id_perfil'] ?? 0);
+            $estado    = intval($_POST['estado'] ?? 1);
+            $password  = trim($_POST['password'] ?? '');
+
+            // Validación mínima para evitar errores de BD
+            if (empty($nombre) || empty($correo)) {
+                echo json_encode(['status' => 'error', 'message' => 'El nombre y el correo son obligatorios.']);
+                exit;
+            }
+
             $usuarioModel = new Usuario();
-            $exito = $usuarioModel->crear($_POST);
+
+            if ($id > 0) {
+                // Actualizar (UPDATE) si viene un ID válido
+                $exito = $usuarioModel->actualizar($id, $nombre, $documento, $correo, $telefono, $idPerfil, $estado, $password);
+                $msg   = 'Usuario actualizado con éxito.';
+            } else {
+                // Crear (INSERT) si es un nuevo registro
+                $datos = [
+                    'nombre'    => $nombre,
+                    'documento' => $documento,
+                    'correo'    => $correo,
+                    'mail'      => $correo,
+                    'telefono'  => $telefono,
+                    'perfil'    => $idPerfil,
+                    'id_perfil' => $idPerfil,
+                    'estado'    => $estado,
+                    'password'  => $password
+                ];
+
+                $exito = $usuarioModel->crear($datos);
+                $msg   = 'Usuario creado con éxito.';
+            }
 
             if ($exito) {
-                echo json_encode(['status' => 'success', 'message' => 'Usuario registrado con éxito.']);
+                echo json_encode(['status' => 'success', 'message' => $msg]);
+                exit;
             } else {
-                echo json_encode(['status' => 'error', 'message' => 'No se pudo guardar el usuario en la base de datos.']);
+                echo json_encode(['status' => 'error', 'message' => 'No se pudo guardar en la base de datos. Verifique que el correo no esté duplicado.']);
+                exit;
             }
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'Método no permitido.']);
         }
+    }
+
+    // Endpoint para cargar la lista de roles dinámicos
+    public function obtenerRoles()
+    {
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $usuarioModel = new Usuario();
+        $roles = $usuarioModel->obtenerRolesBD();
+
+        echo json_encode(['status' => 'success', 'data' => $roles], JSON_UNESCAPED_UNICODE);
         exit;
     }
     // Cargar datos JSON de un usuario por su ID
@@ -105,6 +151,28 @@ class UsuarioController
             }
             echo json_encode(['status' => 'error', 'message' => 'No se pudo actualizar el estado.']);
         }
+        exit;
+    }
+    // Endpoint para consultar datos de un usuario por su ID
+    public function obtenerPorId()
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (ob_get_length()) ob_clean();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $id = intval($_GET['id'] ?? 0);
+
+        if ($id > 0) {
+            $usuarioModel = new Usuario();
+            $data = $usuarioModel->obtenerPorId($id);
+
+            if ($data) {
+                echo json_encode(['status' => 'success', 'data' => $data], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+
+        echo json_encode(['status' => 'error', 'message' => 'No se encontraron datos para el usuario.']);
         exit;
     }
 }
